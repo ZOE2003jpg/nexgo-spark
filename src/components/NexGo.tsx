@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useAuth, AuthProvider } from "@/hooks/useAuth";
 
 const NEXGO_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZzEiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRjBEMDgwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQzlBODRDIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhBNjgyMCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZzIiIHgxPSIwJSIgeTE9IjEwMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOUE3QTJFIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I0U4Qzk3QSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPCEtLSBTcGVlZCBsaW5lcyAtLT4KICA8cmVjdCB4PSI4IiB5PSIzNiIgd2lkdGg9IjI2IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9InVybCgjZzEpIiBvcGFjaXR5PSIwLjkiLz4KICA8cmVjdCB4PSI0IiB5PSI0OCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjQiIHJ4PSIyIiBmaWxsPSJ1cmwoI2cxKSIgb3BhY2l0eT0iMC42Ii8+CiAgPCEtLSBPdXRlciBjaGV2cm9uIC0tPgogIDxwYXRoIGQ9Ik0zOCAxNSBMNjggNTAgTDM4IDg1IEw1MiA4NSBMODIgNTAgTDUyIDE1IFoiIGZpbGw9InVybCgjZzEpIi8+CiAgPCEtLSBJbm5lciBjaGV2cm9uIChsaWdodGVyLCBjcmVhdGVzIGRlcHRoKSAtLT4KICA8cGF0aCBkPSJNNTQgMjIgTDc4IDUwIEw1NCA3OCBMNjIgNzggTDg4IDUwIEw2MiAyMiBaIiBmaWxsPSJ1cmwoI2cyKSIgb3BhY2l0eT0iMC43NSIvPgogIDwhLS0gTmV4R28gdGV4dCAtLT4KICA8dGV4dCB4PSI5OCIgeT0iNjkiIGZvbnQtZmFtaWx5PSJBcmlhbCBCbGFjaywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0idXJsKCNnMSkiIGxldHRlci1zcGFjaW5nPSItMC41Ij5OZXhHbzwvdGV4dD4KPC9zdmc+";
 
@@ -231,30 +232,14 @@ function Splash({onDone}) {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 function Auth({onLogin}) {
+  const { signIn, signUp } = useAuth();
   const [step,setStep] = useState("login");
   const [role,setRole] = useState("student");
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
   const [name,setName] = useState("");
-  const [otp,setOtp] = useState(["","","","","",""]);
   const [loading,setLoading] = useState(false);
-  const refs = useRef([]);
-
-  const handleOtp=(i,v)=>{const n=[...otp];n[i]=v.slice(-1);setOtp(n);if(v&&i<5)refs.current[i+1]?.focus();};
-  const handleOtpKey=(i,e)=>{if(e.key==="Backspace"&&!otp[i]&&i>0)refs.current[i-1]?.focus();};
-
-  const proceed = async (nextStep) => {
-    setLoading(true);
-    await new Promise(r=>setTimeout(r,700));
-    setLoading(false);
-    setStep(nextStep);
-  };
-  const verify = async () => {
-    setLoading(true);
-    await new Promise(r=>setTimeout(r,800));
-    setLoading(false);
-    onLogin(role);
-  };
+  const [errorMsg,setErrorMsg] = useState("");
 
   const RolePicker = ({roles}) => (
     <div style={{display:"grid",gridTemplateColumns:`repeat(${roles.length},1fr)`,gap:8}}>
@@ -264,6 +249,25 @@ function Auth({onLogin}) {
     </div>
   );
 
+  const handleLogin = async () => {
+    if (!email || !password) { setErrorMsg("Please fill in all fields"); return; }
+    setLoading(true); setErrorMsg("");
+    const { error } = await signIn(email, password);
+    setLoading(false);
+    if (error) { setErrorMsg(error.message); return; }
+    // onLogin will be triggered by auth state change
+  };
+
+  const handleRegister = async () => {
+    if (!email || !password || !name) { setErrorMsg("Please fill in all fields"); return; }
+    setLoading(true); setErrorMsg("");
+    const { error } = await signUp(email, password, name, role);
+    setLoading(false);
+    if (error) { setErrorMsg(error.message); return; }
+    toast("Check your email to confirm your account!", "success");
+    setStep("login");
+  };
+
   return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:G.black,position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",width:400,height:400,borderRadius:"50%",background:`radial-gradient(circle,${G.goldGlow} 0%,transparent 70%)`,top:-150,right:-150,pointerEvents:"none"}}/>
@@ -272,22 +276,21 @@ function Auth({onLogin}) {
         <div style={{textAlign:"center",marginBottom:36,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
           <img src={NEXGO_LOGO} alt="NexGo" style={{width:180,objectFit:"contain",filter:"drop-shadow(0 0 16px rgba(201,168,76,0.4))"}}/>
           <div style={{color:G.whiteDim,fontSize:13,marginTop:2}}>
-            {step==="login"?"Welcome back, campus legend":step==="register"?"Join the campus revolution":"One step away"}
+            {step==="login"?"Welcome back, campus legend":"Join the campus revolution"}
           </div>
         </div>
         <div style={card({border:`1px solid ${G.b5}`,padding:24})}>
+          {errorMsg && <div style={{background:`${G.danger}22`,border:`1px solid ${G.danger}`,borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:13,color:G.danger}}>{errorMsg}</div>}
           {step==="login"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <Lbl>Email</Lbl>
               <input style={inp()} placeholder="you@university.edu.ng" type="email" value={email} onChange={e=>setEmail(e.target.value)}/>
               <Lbl>Password</Lbl>
               <input style={inp()} placeholder="••••••••" type="password" value={password} onChange={e=>setPassword(e.target.value)}/>
-              <Lbl>Login as</Lbl>
-              <RolePicker roles={[{r:"student",ic:"🎓"},{r:"vendor",ic:"🍽️"},{r:"rider",ic:"🏍️"},{r:"admin",ic:"⚙️"}]}/>
-              <button style={{...btn("gold"),width:"100%",padding:"14px",marginTop:6}} onClick={()=>proceed("otp")} disabled={loading}>
-                {loading?<Spinner/>:"Continue →"}
+              <button style={{...btn("gold"),width:"100%",padding:"14px",marginTop:6}} onClick={handleLogin} disabled={loading}>
+                {loading?<Spinner/>:"Sign In →"}
               </button>
-              <div style={{textAlign:"center",fontSize:13,color:G.whiteDim}}>No account? <span onClick={()=>setStep("register")} style={{color:G.gold,cursor:"pointer",fontWeight:600}}>Sign up</span></div>
+              <div style={{textAlign:"center",fontSize:13,color:G.whiteDim}}>No account? <span onClick={()=>{setStep("register");setErrorMsg("");}} style={{color:G.gold,cursor:"pointer",fontWeight:600}}>Sign up</span></div>
             </div>
           )}
           {step==="register"&&(
@@ -300,32 +303,10 @@ function Auth({onLogin}) {
               <input style={inp()} placeholder="••••••••" type="password" value={password} onChange={e=>setPassword(e.target.value)}/>
               <Lbl>Register as</Lbl>
               <RolePicker roles={[{r:"student",ic:"🎓"},{r:"vendor",ic:"🍽️"},{r:"rider",ic:"🏍️"}]}/>
-              <button style={{...btn("gold"),width:"100%",padding:"14px"}} onClick={()=>proceed("otp")} disabled={loading}>
+              <button style={{...btn("gold"),width:"100%",padding:"14px"}} onClick={handleRegister} disabled={loading}>
                 {loading?<Spinner/>:"Create Account →"}
               </button>
-              <div style={{textAlign:"center",fontSize:13,color:G.whiteDim}}>Have account? <span onClick={()=>setStep("login")} style={{color:G.gold,cursor:"pointer",fontWeight:600}}>Sign in</span></div>
-            </div>
-          )}
-          {step==="otp"&&(
-            <div style={{display:"flex",flexDirection:"column",gap:20,alignItems:"center"}}>
-              <div style={{textAlign:"center"}}>
-                <div style={{fontSize:48,marginBottom:10}}>📱</div>
-                <div style={{color:G.white,fontWeight:700,marginBottom:4,fontSize:18}}>Verify your number</div>
-                <div style={{color:G.whiteDim,fontSize:13}}>6-digit code sent to your phone</div>
-              </div>
-              <div style={{display:"flex",gap:10}}>
-                {otp.map((v,i)=>(
-                  <input key={i} ref={el=>refs.current[i]=el} value={v}
-                    onChange={e=>handleOtp(i,e.target.value)} onKeyDown={e=>handleOtpKey(i,e)}
-                    style={{width:46,height:56,textAlign:"center",fontSize:22,fontFamily:"'DM Mono'",background:G.b4,border:`2px solid ${v?G.gold:G.b5}`,borderRadius:10,color:G.white,transition:"border-color .2s"}}
-                    maxLength={1} inputMode="numeric"/>
-                ))}
-              </div>
-              <button style={{...btn("gold"),width:"100%",padding:"14px"}} onClick={verify} disabled={loading}>
-                {loading?<Spinner/>:"Verify & Enter →"}
-              </button>
-              <div style={{fontSize:12,color:G.whiteDim}}>Didn't receive? <span style={{color:G.gold,cursor:"pointer"}}>Resend</span></div>
-              <button onClick={()=>setStep("login")} style={{...btn("ghost",{fontSize:12,padding:"6px 12px"})}}>← Back</button>
+              <div style={{textAlign:"center",fontSize:13,color:G.whiteDim}}>Have account? <span onClick={()=>{setStep("login");setErrorMsg("");}} style={{color:G.gold,cursor:"pointer",fontWeight:600}}>Sign in</span></div>
             </div>
           )}
         </div>
@@ -1279,15 +1260,18 @@ function DesktopWrapper({children}) {
   );
 }
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
-export default function App() {
+// ─── Main App (inner, uses auth context) ──────────────────────────────────────
+function NexGoInner() {
   useEffect(()=>{ injectStyles(); },[]);
+  const { user, profile, role: authRole, walletBalance, loading: authLoading, signOut, refreshWallet } = useAuth();
   const [screen,setScreen] = useState("splash");
-  const [role,setRole] = useState("student");
   const [cart,setCart] = useState([]);
-  const [wallet,setWallet] = useState(12450);
+  const [wallet,setWallet] = useState(0);
   const [tab,setTab] = useState("home");
   const [isDesktop,setIsDesktop] = useState(window.innerWidth>=900);
+
+  // Sync wallet from auth context
+  useEffect(() => { setWallet(walletBalance); }, [walletBalance]);
 
   useEffect(()=>{
     const handler=()=>setIsDesktop(window.innerWidth>=900);
@@ -1295,12 +1279,25 @@ export default function App() {
     return ()=>window.removeEventListener("resize",handler);
   },[]);
 
-  const handleLogin=(r)=>{
-    setRole(r);
-    setTab({student:"home",vendor:"dashboard",rider:"rdashboard",admin:"adashboard"}[r]);
-    setScreen("app");
+  // When auth state changes, update screen
+  useEffect(() => {
+    if (authLoading) return;
+    if (user && authRole) {
+      setTab({student:"home",vendor:"dashboard",rider:"rdashboard",admin:"adashboard"}[authRole] || "home");
+      setScreen("app");
+    } else if (!user && screen === "app") {
+      setScreen("auth");
+    }
+  }, [user, authRole, authLoading]);
+
+  const handleLogout = async () => {
+    await signOut();
+    setScreen("auth");
+    setTab("home");
+    setCart([]);
   };
-  const handleLogout=()=>{ setScreen("auth"); setTab("home"); };
+
+  const role = authRole || "student";
 
   const StudentContent=()=>{
     const [restaurant,setRestaurant] = useState(null);
@@ -1332,16 +1329,30 @@ export default function App() {
   );
 
   if(screen==="splash"){
-    const content = <Splash onDone={()=>setScreen("auth")}/>;
+    const content = <Splash onDone={()=>setScreen(user ? "app" : "auth")}/>;
     return isDesktop ? <DesktopWrapper>{content}</DesktopWrapper> : content;
   }
 
   if(screen==="auth"){
-    const content = <Auth onLogin={handleLogin}/>;
+    if (authLoading) {
+      return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:G.black}}>
+        <Spinner size={32} color={G.gold}/>
+      </div>;
+    }
+    const content = <Auth onLogin={()=>{}}/>;
     return isDesktop ? <DesktopWrapper>{content}</DesktopWrapper> : content;
   }
 
   return isDesktop
     ? <DesktopWrapper>{AppContent}</DesktopWrapper>
     : <div style={{height:"100%",maxWidth:480,margin:"0 auto"}}>{AppContent}</div>;
+}
+
+// ─── Wrapped export ───────────────────────────────────────────────────────────
+export default function App() {
+  return (
+    <AuthProvider>
+      <NexGoInner />
+    </AuthProvider>
+  );
 }
