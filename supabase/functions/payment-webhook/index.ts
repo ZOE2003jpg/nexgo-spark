@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,13 +7,40 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function verifyKoraSignature(rawBody: string, signature: string, secret: string): boolean {
+  const hash = createHmac("sha256", secret).update(rawBody).digest("hex");
+  return hash === signature;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+
+    // Verify KoraPay webhook signature
+    const signature = req.headers.get("x-korapay-signature");
+    const webhookSecret = Deno.env.get("KORAPAY_SECRET_KEY");
+
+    if (!signature || !webhookSecret) {
+      console.error("Missing webhook signature or secret");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!verifyKoraSignature(rawBody, signature, webhookSecret)) {
+      console.error("Invalid webhook signature");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = JSON.parse(rawBody);
     const event = body.event;
     const data = body.data;
 
@@ -33,6 +61,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Validate amount is a positive integer within bounds
+    const parsedAmount = Math.floor(Number(amount));
+    if (parsedAmount <= 0 || parsedAmount > 10000000) {
+      return new Response(JSON.stringify({ error: "Invalid amount" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -46,39 +83,24 @@ Deno.serve(async (req) => {
       .limit(1);
 
     if (existing && existing.length > 0) {
-      // Already processed - idempotent
       return new Response(JSON.stringify({ received: true, duplicate: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Credit wallet
-    const { data: wallet } = await supabase
-      .from("wallets")
-      .select("id, balance")
-      .eq("user_id", userId)
-      .single();
+    // Use atomic topup_wallet RPC to prevent race conditions
+    const { data: result, error: rpcError } = await supabase.rpc("topup_wallet", {
+      _user_id: userId,
+      _amount: parsedAmount,
+    });
 
-    if (!wallet) {
-      console.error("Wallet not found for user:", userId);
-      return new Response(JSON.stringify({ error: "Wallet not found" }), {
-        status: 404,
+    if (rpcError || !result?.success) {
+      console.error("Wallet topup failed:", rpcError || result?.message);
+      return new Response(JSON.stringify({ error: result?.message || "Wallet topup failed" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    await supabase
-      .from("wallets")
-      .update({ balance: wallet.balance + amount })
-      .eq("id", wallet.id);
-
-    await supabase.from("wallet_transactions").insert({
-      wallet_id: wallet.id,
-      user_id: userId,
-      amount: amount,
-      label: `KoraPay ${reference}`,
-      icon: "💳",
-    });
 
     return new Response(JSON.stringify({ received: true, credited: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
