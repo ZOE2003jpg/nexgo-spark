@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-
-const NEXGO_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZzEiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRjBEMDgwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQzlBODRDIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhBNjgyMCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZzIiIHgxPSIwJSIgeTE9IjEwMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOUE3QTJFIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I0U4Qzk3QSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPCEtLSBTcGVlZCBsaW5lcyAtLT4KICA8cmVjdCB4PSI4IiB5PSIzNiIgd2lkdGg9IjI2IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9InVybCgjZzEpIiBvcGFjaXR5PSIwLjkiLz4KICA8cmVjdCB4PSI0IiB5PSI0OCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjQiIHJ4PSIyIiBmaWxsPSJ1cmwoI2cxKSIgb3BhY2l0eT0iMC42Ii8+CiAgPCEtLSBPdXRlciBjaGV2cm9uIC0tPgogIDxwYXRoIGQ9Ik0zOCAxNSBMNjggNTAgTDM4IDg1IEw1MiA4NSBMODIgNTAgTDUyIDE1IFoiIGZpbGw9InVybCgjZzEpIi8+CiAgPCEtLSBJbm5lciBjaGV2cm9uIChsaWdodGVyLCBjcmVhdGVzIGRlcHRoKSAtLT4KICA8cGF0aCBkPSJNNTQgMjIgTDc4IDUwIEw1NCA3OCBMNjIgNzggTDg4IDUwIEw2MiAyMiBaIiBmaWxsPSJ1cmwoI2cyKSIgb3BhY2l0eT0iMC43NSIvPgogIDwhLS0gTmV4R28gdGV4dCAtLT4KICA8dGV4dCB4PSI5OCIgeT0iNjkiIGZvbnQtZmFtaWx5PSJBcmlhbCBCbGFjaywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0idXJsKCNnMSkiIGxldHRlci1zcGFjaW5nPSItMC41Ij5OZXhHbzwvdGV4dD4KPC9zdmc+";
+import NEXGO_LOGO from "@/assets/nexgo-logo.png";
 
 const G = {
   gold:"#C9A84C",goldLight:"#E8C97A",goldDark:"#9A7A2E",
@@ -149,7 +148,7 @@ function BottomNav({role,tab,setTab,cartCount}: any) {
         {cfg.left.map((t: any)=><NavBtn key={t.id} t={t}/>)}
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",marginTop:-24}} onClick={()=>setShowMore((p: boolean)=>!p)}>
           <div style={{width:56,height:56,borderRadius:"50%",background:`linear-gradient(135deg,${G.goldDark},${G.gold},${G.goldLight})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 -4px 20px rgba(201,168,76,0.5),0 4px 16px rgba(0,0,0,0.6)`,border:`3px solid ${G.b2}`,transition:"transform .28s cubic-bezier(0.34,1.56,0.64,1)",transform:showMore?"rotate(45deg) scale(1.08)":"rotate(0deg) scale(1)"}}>
-            <img src={NEXGO_LOGO} alt="" style={{width:50,height:28,objectFit:"contain",filter:"brightness(0) invert(0.15)"}}/>
+            <img src={NEXGO_LOGO} alt="" style={{width:32,height:32,objectFit:"contain"}}/>
           </div>
           <div style={{fontSize:9,fontWeight:700,color:G.gold,letterSpacing:"0.1em",textTransform:"uppercase",marginTop:4}}>{showMore?"Close":"Menu"}</div>
         </div>
@@ -162,29 +161,52 @@ function BottomNav({role,tab,setTab,cartCount}: any) {
 // ─── Splash ───────────────────────────────────────────────────────────────────
 function Splash({onDone}: any) {
   const [progress,setProgress] = useState(0);
+  const [phase,setPhase] = useState(0);
   useEffect(()=>{
-    const t=setInterval(()=>setProgress((p: number)=>{if(p>=100){clearInterval(t);setTimeout(onDone,300);return 100;}return p+1.5;}),25);
+    const t=setInterval(()=>setProgress((p: number)=>{if(p>=100){clearInterval(t);setTimeout(onDone,400);return 100;}return p+1.2;}),22);
     return ()=>clearInterval(t);
   },[]);
+  useEffect(()=>{
+    const t1=setTimeout(()=>setPhase(1),300);
+    const t2=setTimeout(()=>setPhase(2),800);
+    const t3=setTimeout(()=>setPhase(3),1300);
+    return ()=>{clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);};
+  },[]);
   return (
-    <div style={{height:"100vh",background:G.black,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:48,overflow:"hidden",position:"relative"}}>
-      <div style={{position:"absolute",width:600,height:600,borderRadius:"50%",background:`radial-gradient(circle,${G.goldGlow} 0%,transparent 65%)`,top:-200,right:-200,pointerEvents:"none"}}/>
-      <div style={{position:"absolute",width:400,height:400,borderRadius:"50%",background:`radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 65%)`,bottom:-100,left:-100,pointerEvents:"none"}}/>
-      <div style={{textAlign:"center",animation:"glow 3s ease infinite",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
-        <img src={NEXGO_LOGO} alt="NexGo" style={{width:220,objectFit:"contain",filter:"drop-shadow(0 0 24px rgba(201,168,76,0.5))"}}/>
-        <div style={{color:G.whiteDim,fontSize:12,letterSpacing:"6px",textTransform:"uppercase",marginTop:4}}>Campus Super App</div>
+    <div style={{height:"100vh",background:`radial-gradient(ellipse at 50% 40%, #1a1510 0%, ${G.black} 70%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:40,overflow:"hidden",position:"relative"}}>
+      {/* Ambient glow orbs */}
+      <div style={{position:"absolute",width:700,height:700,borderRadius:"50%",background:`radial-gradient(circle,rgba(201,168,76,0.12) 0%,transparent 55%)`,top:"-25%",right:"-15%",pointerEvents:"none",animation:"shimmer 4s ease infinite"}}/>
+      <div style={{position:"absolute",width:500,height:500,borderRadius:"50%",background:`radial-gradient(circle,rgba(201,168,76,0.06) 0%,transparent 60%)`,bottom:"-10%",left:"-10%",pointerEvents:"none",animation:"shimmer 5s ease 1s infinite"}}/>
+      {/* Horizontal gold line accent */}
+      <div style={{position:"absolute",top:"18%",left:"50%",transform:"translateX(-50%)",width:180,height:1,background:`linear-gradient(90deg,transparent,${G.gold}40,transparent)`,opacity:phase>=1?1:0,transition:"opacity 1s ease"}}/>
+
+      {/* Logo */}
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:20,opacity:phase>=1?1:0,transform:phase>=1?"translateY(0) scale(1)":"translateY(30px) scale(0.9)",transition:"all .8s cubic-bezier(0.16,1,0.3,1)"}}>
+        <img src={NEXGO_LOGO} alt="NexGo" style={{width:260,objectFit:"contain",filter:"drop-shadow(0 0 40px rgba(201,168,76,0.4)) drop-shadow(0 0 80px rgba(201,168,76,0.15))"}}/>
       </div>
-      <div style={{display:"flex",gap:16}}>
-        {["🍽️","📦","🚌"].map((ic,i)=>(
-          <div key={i} style={{width:52,height:52,borderRadius:"50%",background:G.b3,border:`1.5px solid ${G.b5}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,animation:`shimmer 2s ease ${i*0.4}s infinite`}}>{ic}</div>
-        ))}
-      </div>
-      <div style={{width:220}}>
-        <div style={{height:2,background:G.b4,borderRadius:1,overflow:"hidden"}}>
-          <div style={{height:"100%",width:`${progress}%`,background:`linear-gradient(90deg,${G.goldDark},${G.gold})`,borderRadius:1,transition:"width .03s linear"}}/>
+
+      {/* Tagline */}
+      <div style={{opacity:phase>=2?1:0,transform:phase>=2?"translateY(0)":"translateY(16px)",transition:"all .6s cubic-bezier(0.16,1,0.3,1) .1s",textAlign:"center"}}>
+        <div style={{color:G.whiteDim,fontSize:13,letterSpacing:"5px",textTransform:"uppercase",fontWeight:300}}>Campus Super App</div>
+        <div style={{display:"flex",gap:20,justifyContent:"center",marginTop:18}}>
+          {[{ic:"🍽️",l:"Food"},{ic:"📦",l:"Dispatch"},{ic:"🚌",l:"Rides"}].map((s,i)=>(
+            <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,opacity:phase>=3?1:0,transform:phase>=3?"translateY(0)":"translateY(12px)",transition:`all .5s cubic-bezier(0.16,1,0.3,1) ${i*0.15}s`}}>
+              <div style={{width:48,height:48,borderRadius:14,background:`rgba(201,168,76,0.08)`,border:`1px solid rgba(201,168,76,0.15)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{s.ic}</div>
+              <div style={{fontSize:10,color:G.whiteDim,letterSpacing:".08em",fontWeight:500}}>{s.l}</div>
+            </div>
+          ))}
         </div>
-        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:G.whiteDim,fontFamily:"'DM Mono'"}}>{Math.round(progress)}%</div>
       </div>
+
+      {/* Progress bar */}
+      <div style={{width:200,opacity:phase>=2?1:0,transition:"opacity .5s ease .3s"}}>
+        <div style={{height:2,background:`rgba(201,168,76,0.15)`,borderRadius:1,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${progress}%`,background:`linear-gradient(90deg,${G.goldDark},${G.gold},${G.goldLight})`,borderRadius:1,transition:"width .03s linear",boxShadow:`0 0 12px ${G.gold}60`}}/>
+        </div>
+      </div>
+
+      {/* Bottom line accent */}
+      <div style={{position:"absolute",bottom:"18%",left:"50%",transform:"translateX(-50%)",width:120,height:1,background:`linear-gradient(90deg,transparent,${G.gold}30,transparent)`,opacity:phase>=2?1:0,transition:"opacity 1s ease .5s"}}/>
     </div>
   );
 }
@@ -244,7 +266,7 @@ function Auth() {
       <div style={{position:"absolute",width:300,height:300,borderRadius:"50%",background:`radial-gradient(circle,rgba(201,168,76,0.07) 0%,transparent 70%)`,bottom:-100,left:-100,pointerEvents:"none"}}/>
       <div style={{width:"100%",maxWidth:420,animation:"fadeUp .5s ease"}}>
         <div style={{textAlign:"center",marginBottom:36,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
-          <img src={NEXGO_LOGO} alt="NexGo" style={{width:180,objectFit:"contain",filter:"drop-shadow(0 0 16px rgba(201,168,76,0.4))"}}/>
+          <img src={NEXGO_LOGO} alt="NexGo" style={{width:200,objectFit:"contain",filter:"drop-shadow(0 0 20px rgba(201,168,76,0.4))"}}/>
           <div style={{color:G.whiteDim,fontSize:13,marginTop:2}}>
             {step==="login"?"Welcome back, campus legend":step==="forgot"?"Reset your password":"Join the campus revolution"}
           </div>
